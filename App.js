@@ -1,20 +1,13 @@
 import React, { useState, useEffect } from 'react'
-//import MapView, { Marker } from 'react-native-maps'
-import { TouchableOpacity, Text, Button, View, SafeAreaView, Image, StyleSheet, DatePickerAndroidOpenReturn, Picker, ScrollView, TextInput, Alert } from 'react-native'
-import { TagSelect } from 'react-native-tag-select';
+import { Dimensions, Text, Button, View, SafeAreaView, Image, StyleSheet, ScrollView, TextInput, Alert } from 'react-native'
 import * as Location from 'expo-location';
-import { Input } from "react-native-elements"
-import { DateInput } from 'react-native-date-input';
-import dayjs from 'dayjs';
+import { LineChart } from 'react-native-chart-kit';
 
 const App = () => {
-  const data = [
-    { id: 1, label: 'Hourly' },
-    { id: 2, label: 'Daily' },
-    { id: 3, label: 'Weekly' },
-    { id: 4, label: 'Monthly' },
-    { id: 5, label: 'Annually' },
-  ];
+  const [counter, setCounter] = useState(0)
+  const [xVals, setXVals] = useState([])
+  const [yVals, setYVals] = useState([])
+  const [ccc, setCcc] = useState(0)
   const [latLangManual, setLatLangManual] = useState({ latitude: 0, longitude: 0 })
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -22,33 +15,60 @@ const App = () => {
   const [mapRegion, setMapRegion] = useState(null);
   const [showOne, setShowOne] = useState(0);
   const [fetcher, setFetcher] = useState("");
-  const [markers, setMarkers] = useState([]);
   const [lat, setLat] = useState("")
   const [long, setLong] = useState("")
   const [dateStart, setDateStart] = useState('')
   const [dateEnd, setDateEnd] = useState('')
-  const [twoDates, setTwoDates] = useState(null)
-  let dateinpstart = null, dateinpend = null;
+
+  const checkYear = () => {
+    if (!dateStart) {
+      Alert.alert("Please input a valid start year")
+      return 0;
+    }
+    else if (parseInt(dateStart) < 2000) {
+      Alert.alert("No data for years less than 2000")
+      return 0;
+    }
+    else if (parseInt(dateStart) > 2019) {
+      Alert.alert("No data for years more than 2019")
+      return 0;
+    }
+    else if (!dateEnd) {
+      Alert.alert("Please input a valid end year")
+      return 0;
+    }
+    else if (parseInt(dateEnd) < 2001) {
+      Alert.alert("No data for years less than 2001")
+      return 0;
+    }
+    else if (parseInt(dateEnd) > 2020) {
+      Alert.alert("No data for years more than 2020")
+      return 0;
+    }
+    else {
+      return 1;
+    }
+  }
   const handleStart = (date) => {
     setDateStart(date)
   }
   const handleEnd = (date) => {
     setDateEnd(date)
   }
-  const focusstart = () => {
-    if (!dateinpstart) {
+  const handleFetch = () => {
+    if (!checkYear) {
       return;
     }
-
-    dateinpstart.focus();
-  };
-  const focusend = () => {
-    if (!dateinpend) {
+    if (dateStart >= dateEnd) {
+      Alert.alert("enter a start date smaller than end date")
       return;
     }
-
-    dateinpend.focus();
-  };
+    if (dateEnd - dateStart != 1) {
+      Alert.alert("Difference between start and end dates must be 1")
+      return 0;
+    }
+    getData();
+  }
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -69,7 +89,6 @@ const App = () => {
         longitudeDelta: 0.015,
         latitudeDelta: 0.0121
       })
-      console.log(location)
       setLocation(location);
     })();
   }, []);
@@ -115,14 +134,6 @@ const App = () => {
   const localized = () => {
     setMapRegion(local)
   }
-  let link = `https://power.larc.nasa.gov/api/temporal`
-  const grab = () => {
-    console.log("Hello")
-    //fetch(`${link}/${x}/point?parameters=T2M&community=SB&longitude=${mapRegion.longitude}&latitude=${mapRegion.latitude}&start=2021101&end=2021102&format=JSON`)
-  }
-  const fetchingnow = () => {
-    console.log("done")
-  }
   const onChangeNumberlat = (text) => {
     setLat(text)
     setLatLangManual({ longitude: latLangManual.longitude, latitude: text })
@@ -139,14 +150,33 @@ const App = () => {
       Alert.alert("Enter a valid location")
       return;
     }
-    console.log(mapRegion)
     setMapRegion({
       longitude: y,
       latitudeDelta: mapRegion.latitudeDelta,
       latitude: x,
       longitudeDelta: mapRegion.longitudeDelta
     })
-    console.log(mapRegion)
+  }
+  const clearVal = () => {
+    setCcc(0)
+    xVals.length = 0;
+    yVals.length = 0;
+  }
+  let link = "https://power.larc.nasa.gov/api/temporal"
+  const getData = async () => {
+    if (counter > 0) {
+      clearVal()
+    }
+    let resp = await fetch(`${link}/climatology/point?parameters=SOLAR_DEFICITS_BLW_CONSEC_01&community=re&longitude=${mapRegion.longitude}&latitude=${mapRegion.latitude}&start=${dateStart}&end=${dateEnd}&format=JSON`);
+    let json = await resp.json();
+    for (let one in json.properties.parameter.SOLAR_DEFICITS_BLW_CONSEC_01) {
+      if (one != "ANN") {
+        xVals.push(one)
+        yVals.push(json.properties.parameter.SOLAR_DEFICITS_BLW_CONSEC_01[one])
+      }
+    }
+    setCounter(counter + 1)
+    setCcc(1)
   }
   return (
     <SafeAreaView style={styles.app}>
@@ -160,7 +190,7 @@ const App = () => {
           </View>
           {
             showOne ?
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, paddingTop: 10, paddingBottom: 10 }}>
                 <TextInput
                   style={styles.input}
                   onChangeText={onChangeNumberlat}
@@ -184,53 +214,83 @@ const App = () => {
               </View>
               : null
           }
-          <TextInput
-            style={styles.input}
-            onChangeText={handleStart}
-            value={dateStart}
-            placeholder="Start Date (DD/MM/YYYY)"
-            keyboardType="numeric"
-            placeholderTextColor="#fff"
-          />
-          <TextInput
-            style={styles.input}
-            onChangeText={handleEnd}
-            value={dateEnd}
-            placeholder="End Date (DD/MM/YYYY)"
-            keyboardType="numeric"
-            placeholderTextColor="#fff"
-          />
-          <Button title="Check Interval"></Button>
+          <View style={{ width: `90%`, border: `1px solid red`, marginBottom: 10, marginTop: 10, marginRight: 'auto', marginLeft: 'auto' }}>
+            <Button title="Get Automatically" onPress={localized} color="rgb(211,207,201)" style={{ width: '90%' }}>
+            </Button>
+          </View>
+        </View>
+        <View style={{ backgroundColor: `rgb(207, 204, 204)`, padding: 10 }}>
+          <Text style={{ color: `black`, marginLeft: `auto`, marginRight: `auto`, fontSize: 22 }}>Set an Interval: </Text>
+          <View style={{ display: "flex", flexWrap: "nowrap" }}>
+            <TextInput
+              onChangeText={handleStart}
+              value={dateStart}
+              placeholder="Put a valid start year (2000-2019)"
+              placeholderTextColor="#000"
+            />
+          </View>
+          <View style={{ display: "flex", flexWrap: "nowrap" }}>
+            <Text style={{ marginRight: "auto", marginLeft: "auto", fontSize: 18 }}>End:</Text>
+            <TextInput
+              onChangeText={handleEnd}
+              value={dateEnd}
+              placeholder="Put a valid end year must be one year more than start (2001-2020)"
+              placeholderTextColor="#000"
+            />
+          </View>
         </View>
         {
           mapRegion == null ?
             null :
-            <Text style={{ color: `black` }}>{`longitude is ${mapRegion.longitude} and latitude is ${mapRegion.latitude}`}</Text>
+            <Text style={{ color: `black`, marginLeft: `auto`, marginRight: `auto` }}>{`Latitude is ${mapRegion.latitude}\nLongitude is ${mapRegion.longitude}`}</Text>
         }
-        <Button title="fetch" color="rgb(211,207,201)" testID="black" />
-        <TagSelect
-          data={data}
-          itemStyle={styles.item}
-          itemLabelStyle={styles.choice}
-          itemStyleSelected={styles.itemSelected}
-          itemLabelStyleSelected={styles.labelSelected}
-        />
-        <Button title="HELLO" onPress={grab()} />
-        {
-          fetcher == "hourly" ?
-            <Text style={{ marginLeft: 'auto', marginRight: 'auto', fontSize: 18 }}>Hourly</Text>
-            :
-            fetcher == "daily" ?
-              <Text style={{ marginLeft: 'auto', marginRight: 'auto', fontSize: 18 }}>Daily</Text>
-              :
-              fetcher == "monthly" ?
-                <Text style={{ marginLeft: 'auto', marginRight: 'auto', fontSize: 18 }}>Monthly</Text>
-                :
-                fetcher == "annually" ?
-                  <Text style={{ marginLeft: 'auto', marginRight: 'auto', fontSize: 18 }}>Annually</Text>
-                  :
-                  <Text style={{ marginLeft: 'auto', marginRight: 'auto', fontSize: 18 }}>Put a valid value</Text>
-        }
+        <Button title="Statistics" color="#e26a00" testID="black" />
+        <View style={{ width: `60%`, border: `1px solid red`, marginBottom: 10, marginTop: 10, marginRight: 'auto', marginLeft: 'auto' }}>
+          <Button title="Get Stats" onPress={handleFetch} color="rgb(211,207,201)">
+          </Button>
+        </View>
+        <View>
+          <Text style={{ marginLeft: 'auto', marginRight: 'auto', fontSize: 18 }}>Sun Irradiance</Text>
+          {
+            ccc == 0 ?
+              <Text>Waiting for data....</Text>
+              : <LineChart
+                data={{
+                  labels: xVals,
+                  datasets: [
+                    {
+                      data: yVals
+                    }
+                  ]
+                }}
+                width={Dimensions.get("window").width - 20} // from react-native
+                height={220}
+                chartConfig={{
+                  backgroundColor: "#e26a00",
+                  backgroundGradientFrom: "#fb8c00",
+                  backgroundGradientTo: "#ffa726",
+                  decimalPlaces: 2, // optional, defaults to 2dp
+                  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  style: {
+                    borderRadius: 16
+                    , marginRight: `auto`,
+                    marginLeft: `auto`
+                  },
+                  propsForDots: {
+                    r: "6",
+                    strokeWidth: "2",
+                    stroke: "#ffa726"
+                  }
+                }}
+                bezier
+                style={{
+                  marginVertical: 8,
+                  borderRadius: 16
+                }}
+              />
+          }
+        </View>
       </ScrollView>
     </SafeAreaView >
   )
@@ -290,7 +350,8 @@ const styles = StyleSheet.create(
     }
     , wrapper: {
       backgroundColor: '#333',
-      color: 'white'
+      color: 'black',
+      padding: 10
     }
   }
 )
