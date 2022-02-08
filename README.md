@@ -1,4 +1,4 @@
-# Nasa-Giza
+# Go-Green
 To open the app, please follow these steps:
 1. Download NodeJS (https://nodejs.org/en/download/).
 2. Open the command line from the start menu.
