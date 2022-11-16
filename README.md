@@ -9,4 +9,4 @@ To open the app, please follow these steps:
 7. Type npm start.
 8. Download "expo" app on your phone.
 9. Scan the QR code from the expo app.
-*Ensure that your laptop and mobile are using the same router.
+*Ensure that your laptop and mobile are connected to the same router.
