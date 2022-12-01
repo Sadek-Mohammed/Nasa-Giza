@@ -1,4 +1,6 @@
 # Go-Green
+Info: The Go-Green application was built to help solar cells users increase the efficiency of their cells. It operates by obtaining sun-related data from NASA's API and visualizing it to the users through graphs and charts. The entire project was completed using react-native and its accompanying libraries.
+
 To open the app, please follow these steps:
 1. Download NodeJS (https://nodejs.org/en/download/).
 2. Open the command line from the start menu.
